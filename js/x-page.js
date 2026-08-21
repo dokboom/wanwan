@@ -71,6 +71,21 @@ function renderXPage(user) {
     app.appendChild(page)
   }
 
+  // ===== 💡 新增：在这里直接给这篇推文绑定点击事件 =====
+  var newlyCreatedPost = page.querySelector('.x-post');
+  if (newlyCreatedPost) {
+    newlyCreatedPost.style.cursor = 'pointer';
+    newlyCreatedPost.addEventListener('click', function(e) {
+      if (e.target.closest('.x-post-action')) return; // 点赞等按钮不触发
+      showXPostDetail({
+        name: '弯弯协会',
+        handle: '@Wanwan_Offical',
+        content: '产品上线请多多关注。#AI #Wanwan'
+      });
+    });
+  }
+  // ===============================================
+
   var avatar = page.querySelector('.x-topbar-avatar')
   if (avatar) {
     avatar.setAttribute('role', 'button')

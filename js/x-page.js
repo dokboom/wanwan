@@ -728,47 +728,4 @@ function buildXBottomBar() {
 // ==========================================
 // 续写功能区：输入框实时字数统计增强器
 // ==========================================
-
-// 自动寻找页面上的发推文本框并增强它
-function initXWordCounter() {
-  // 查找常见的文本框或文本域
-  var textarea = document.querySelector('textarea, input[placeholder*="发生"], input[placeholder*="有什么"]')
-  if (!textarea) return
-
-  // 检查是否已经加过了，避免重复添加
-  if (textarea.parentNode.querySelector('.x-word-counter-badge')) return
-
-  // 创建一个显示字数的精美小标签
-  var badge = document.createElement('div')
-  badge.className = 'x-word-counter-badge'
-  badge.style.cssText = 'text-align:right;font-size:12px;color:#71767b;padding:5px 10px;'
-  badge.innerHTML = '还可以输入 <span id="x-count-num">280</span> 字'
-
-  // 把字数标签插入到文本框的下方
-  textarea.parentNode.appendChild(badge)
-
-  // 监听输入事件，实时计算字数
-  textarea.addEventListener('input', function() {
-    var len = textarea.value.length
-    var left = 280 - len
-    var numSpan = badge.querySelector('#x-count-num')
-    if (numSpan) {
-      numSpan.innerText = left
-      // 如果超过 280 字，字数变红提醒
-      if (left < 0) {
-        badge.style.color = '#f4212e'
-        numSpan.innerText = '-' + Math.abs(left)
-      } else {
-        badge.style.color = '#71767b'
-      }
-    }
-  })
-}
-
-// 页面加载或点击时自动运行一次检测
-document.addEventListener('click', function() {
-  initXWordCounter()
-})
-
-// 立即尝试运行一次
-initXWordCounter()
+alert("代码加载成功！当前时间是：" + new Date());

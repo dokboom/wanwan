@@ -743,12 +743,10 @@ async function showXPostDetail(postData) {
       '<span>推文</span>' +
     '</div>' +
     '<div class="x-body">' +
-      // 复用前面的 buildXPost 渲染主推文
       buildXPost(postData) +
-      '<div class="x-replies-container"><!-- 评论列表占位 --></div>' +
+      '<div class="x-replies-container"></div>' +
     '</div>'
 
-  // 挂载到页面
   if (window.openPage) {
     window.openPage(page)
   } else {
@@ -756,21 +754,17 @@ async function showXPostDetail(postData) {
     app.appendChild(page)
   }
 
-  // 绑定返回按钮
-  page.querySelector('.x-back-btn').addEventListener('click', function() {
+  page.querySelector('.x-back-btn').addEventListener('click', function(e) {
+    e.stopPropagation()
     page.remove()
   })
 }
 
-// 绑定推文点击事件，点击时打开详情页
 document.addEventListener('click', function(e) {
   var postEl = e.target.closest('.x-post')
   if (!postEl) return
-  
-  // 如果点击的不是点赞、评论等按钮，就打开详情页
   if (e.target.closest('.x-post-action')) return
 
-  // 模拟一些推文数据传给详情页
   var mockPostData = {
     name: postEl.querySelector('.x-post-name') ? postEl.querySelector('.x-post-name').innerText : '用户',
     handle: postEl.querySelector('.x-post-handle') ? postEl.querySelector('.x-post-handle').innerText : '@user',

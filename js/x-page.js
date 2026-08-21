@@ -726,55 +726,17 @@ function buildXBottomBar() {
 }
 
 // ==========================================
-// 续写功能区：例如扩展一个“推文详情页”
+// 续写功能区：点击推文时弹窗提示
 // ==========================================
-
-async function showXPostDetail(postData) {
-  var existing = document.getElementById('x-post-detail-page')
-  if (existing) existing.remove()
-
-  var page = document.createElement('div')
-  page.id = 'x-post-detail-page'
-  page.className = 'full-page x-post-detail-page'
-
-  page.innerHTML = 
-    '<div class="x-header">' +
-      '<button class="x-back-btn" type="button"><i class="fa fa-angle-left"></i></button>' +
-      '<span>推文</span>' +
-    '</div>' +
-    '<div class="x-body">' +
-      buildXPost(postData) +
-      '<div class="x-replies-container"></div>' +
-    '</div>'
-
-  if (window.openPage) {
-    window.openPage(page)
-  } else {
-    var app = document.getElementById('app') || document.body
-    app.appendChild(page)
-  }
-
-  page.querySelector('.x-back-btn').addEventListener('click', function(e) {
-    e.stopPropagation()
-    page.remove()
-  })
-}
-
 document.addEventListener('click', function(e) {
   var postEl = e.target.closest('.x-post')
   if (!postEl) return
   if (e.target.closest('.x-post-action')) return
 
-  var mockPostData = {
-    name: postEl.querySelector('.x-post-name') ? postEl.querySelector('.x-post-name').innerText : '用户',
-    handle: postEl.querySelector('.x-post-handle') ? postEl.querySelector('.x-post-handle').innerText : '@user',
-    time: '刚刚',
-    content: postEl.querySelector('.x-post-content') ? postEl.querySelector('.x-post-content').innerHTML : '',
-    comments: 0,
-    retweets: 0,
-    likes: 0,
-    views: '1'
+  // 如果环境支持 toast 提示，就弹一下，不支持就用 alert
+  if (window.toast) {
+    window.toast('你点击了一条推文')
+  } else {
+    alert('你点击了一条推文')
   }
-
-  showXPostDetail(mockPostData)
 })

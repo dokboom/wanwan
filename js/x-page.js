@@ -739,3 +739,56 @@ function buildXBottomBar() {
     '</div>'
   }).join('')
 }
+
+window.showXPostDetail = function(postData) {
+  var existing = document.getElementById('x-post-detail')
+  if (existing) existing.remove()
+
+  var page = document.createElement('div')
+  page.id = 'x-post-detail'
+  page.className = 'full-page'
+  page.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;overflow-y:auto;color:#fff;'
+
+  page.innerHTML = 
+    '<div class="x-header" style="display:flex;align-items:center;padding:15px;border-bottom:1px solid #2f3336;position:sticky;top:0;background:#000;">' +
+      '<button id="x-detail-back" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;margin-right:15px;">←</button>' +
+      '<span style="font-weight:bold;font-size:16px;">推文详情</span>' +
+    '</div>' +
+    '<div style="padding:15px;border-bottom:1px solid #2f3336;">' +
+      '<div style="font-weight:bold;margin-bottom:10px;">' + postData.name + ' <span style="color:#71767b;font-weight:normal;">' + postData.handle + '</span></div>' +
+      '<div style="font-size:16px;line-height:1.5;">' + postData.content + '</div>' +
+    '</div>' +
+    '<div id="x-comments-container" style="padding:15px;">' +
+      '<div style="color:#71767b;text-align:center;font-size:14px;">暂无评论，快来抢沙发吧</div>' +
+    '</div>' +
+    '<div style="position:sticky;bottom:0;background:#000;padding:10px 15px;border-top:1px solid #2f3336;display:flex;gap:10px;">' +
+      '<input id="x-comment-input" type="text" placeholder="发表你的评论..." style="flex:1;background:#202327;border:none;border-radius:20px;padding:10px 15px;color:#fff;outline:none;" />' +
+      '<button id="x-comment-send" style="background:#1d9bf0;color:#fff;border:none;border-radius:20px;padding:0 15px;font-weight:bold;cursor:pointer;">回复</button>' +
+    '</div>'
+
+  var app = document.getElementById('app') || document.body
+  app.appendChild(page)
+
+  // 返回按钮逻辑
+  document.getElementById('x-detail-back').onclick = function() {
+    page.remove()
+  }
+
+  // 发送评论逻辑
+  document.getElementById('x-comment-send').onclick = function() {
+    var input = document.getElementById('x-comment-input')
+    var text = input.value.trim()
+    if (!text) return
+
+    var list = document.getElementById('x-comments-container')
+    if (list.innerHTML.indexOf('暂无评论') !== -1) {
+      list.innerHTML = ''
+    }
+
+    var item = document.createElement('div')
+    item.style.cssText = 'padding:10px 0;border-bottom:1px solid #2f3336;font-size:14px;'
+    item.innerHTML = '<span style="color:#1d9bf0;font-weight:bold;">我</span>：' + text
+    list.appendChild(item)
+    input.value = ''
+  }
+}

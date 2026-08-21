@@ -724,3 +724,40 @@ function buildXBottomBar() {
     '</div>'
   }).join('')
 }
+
+// ==========================================
+// 续写功能区：例如扩展一个“推文详情页”
+// ==========================================
+
+async function showXPostDetail(postData) {
+  var existing = document.getElementById('x-post-detail-page')
+  if (existing) existing.remove()
+
+  var page = document.createElement('div')
+  page.id = 'x-post-detail-page'
+  page.className = 'full-page x-post-detail-page'
+
+  page.innerHTML = 
+    '<div class="x-header">' +
+      '<button class="x-back-btn" type="button"><i class="fa fa-angle-left"></i></button>' +
+      '<span>推文</span>' +
+    '</div>' +
+    '<div class="x-body">' +
+      // 复用前面的 buildXPost 渲染主推文
+      buildXPost(postData) +
+      '<div class="x-replies-container"><!-- 评论列表占位 --></div>' +
+    '</div>'
+
+  // 挂载到页面
+  if (window.openPage) {
+    window.openPage(page)
+  } else {
+    var app = document.getElementById('app') || document.body
+    app.appendChild(page)
+  }
+
+  // 绑定返回按钮
+  page.querySelector('.x-back-btn').addEventListener('click', function() {
+    page.remove()
+  })
+}

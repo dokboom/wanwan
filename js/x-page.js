@@ -726,80 +726,49 @@ function buildXBottomBar() {
 }
 
 // ==========================================
-// 续写功能区：推文详情页与评论生成器
+// 续写功能区：输入框实时字数统计增强器
 // ==========================================
 
-document.addEventListener('click', function(e) {
-  var postEl = e.target.closest('.x-post')
-  if (!postEl) return
-  if (e.target.closest('.x-post-action')) return
+// 自动寻找页面上的发推文本框并增强它
+function initXWordCounter() {
+  // 查找常见的文本框或文本域
+  var textarea = document.querySelector('textarea, input[placeholder*="发生"], input[placeholder*="有什么"]')
+  if (!textarea) return
 
-  // 获取被点击推文的内容和作者
-  var name = postEl.querySelector('.x-post-name') ? postEl.querySelector('.x-post-name').innerText : '用户'
-  var handle = postEl.querySelector('.x-post-handle') ? postEl.querySelector('.x-post-handle').innerText : '@user'
-  var content = postEl.querySelector('.x-post-content') ? postEl.querySelector('.x-post-content').innerHTML : ''
+  // 检查是否已经加过了，避免重复添加
+  if (textarea.parentNode.querySelector('.x-word-counter-badge')) return
 
-  // 创建详情页弹窗容器（使用原有的 full-page 保证样式正常）
-  var existing = document.getElementById('x-post-detail-page')
-  if (existing) existing.remove()
+  // 创建一个显示字数的精美小标签
+  var badge = document.createElement('div')
+  badge.className = 'x-word-counter-badge'
+  badge.style.cssText = 'text-align:right;font-size:12px;color:#71767b;padding:5px 10px;'
+  badge.innerHTML = '还可以输入 <span id="x-count-num">280</span> 字'
 
-  var page = document.createElement('div')
-  page.id = 'x-post-detail-page'
-  page.className = 'full-page'
-  page.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;overflow-y:auto;color:#fff;'
+  // 把字数标签插入到文本框的下方
+  textarea.parentNode.appendChild(badge)
 
-  // 组装详情页 HTML（包含顶部返回、原推文、评论列表、底部输入框）
-  page.innerHTML = 
-    '<div class="x-header" style="display:flex;align-items:center;padding:10px 15px;border-bottom:1px solid #2f3336;background:#000;position:sticky;top:0;">' +
-      '<button class="x-back-btn" type="button" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;margin-right:15px;">←</button>' +
-      '<span style="font-weight:bold;font-size:16px;">推文详情</span>' +
-    '</div>' +
-    '<div style="padding:15px;border-bottom:1px solid #2f3336;">' +
-      '<div style="font-weight:bold;">' + name + ' <span style="color:#71767b;font-weight:normal;">' + handle + '</span></div>' +
-      '<div style="margin-top:10px;font-size:15px;line-height:1.5;">' + content + '</div>' +
-    '</div>' +
-    '<div id="x-comments-list" style="padding:15px;">' +
-      '<div style="color:#71767b;text-align:center;font-size:14px;margin-bottom:15px;">暂无评论，快来抢沙发吧</div>' +
-    '</div>' +
-    '<div style="position:sticky;bottom:0;background:#000;padding:10px 15px;border-top:1px solid #2f3336;display:flex;gap:10px;">' +
-      '<input id="x-comment-input" type="text" placeholder="发表你的评论..." style="flex:1;background:#202327;border:none;border-radius:20px;padding:10px 15px;color:#fff;outline:none;" />' +
-      '<button id="x-send-comment-btn" type="button" style="background:#1d9bf0;color:#fff;border:none;border-radius:20px;padding:0 15px;font-weight:bold;cursor:pointer;">回复</button>' +
-    '</div>'
-
-  // 挂载到页面
-  var app = document.getElementById('app') || document.body
-  app.appendChild(page)
-
-  // 返回按钮事件
-  page.querySelector('.x-back-btn').addEventListener('click', function() {
-    page.remove()
-  })
-
-  // 生成评论按钮事件
-  var inputEl = page.querySelector('#x-comment-input')
-  var sendBtn = page.querySelector('#x-send-comment-btn')
-  var listEl = page.querySelector('#x-comments-list')
-
-  sendBtn.addEventListener('click', function() {
-    var text = inputEl.value.trim()
-    if (!text) {
-      if (window.toast) window.toast('评论内容不能为空')
-      return
+  // 监听输入事件，实时计算字数
+  textarea.addEventListener('input', function() {
+    var len = textarea.value.length
+    var left = 280 - len
+    var numSpan = badge.querySelector('#x-count-num')
+    if (numSpan) {
+      numSpan.innerText = left
+      // 如果超过 280 字，字数变红提醒
+      if (left < 0) {
+        badge.style.color = '#f4212e'
+        numSpan.innerText = '-' + Math.abs(left)
+      } else {
+        badge.style.color = '#71767b'
+      }
     }
-
-    // 如果原来提示“暂无评论”，先清空它
-    if (listEl.innerHTML.indexOf('暂无评论') !== -1) {
-      listEl.innerHTML = ''
-    }
-
-    // 创建一条新的评论 HTML
-    var commentItem = document.createElement('div')
-    commentItem.style.cssText = 'padding:10px 0;border-bottom:1px solid #2f3336;font-size:14px;'
-    commentItem.innerHTML = '<span style="color:#1d9bf0;font-weight:bold;">我</span>：' + text
-
-    listEl.appendChild(commentItem)
-    inputEl.value = '' // 清空输入框
-
-    if (window.toast) window.toast('回复成功')
   })
+}
+
+// 页面加载或点击时自动运行一次检测
+document.addEventListener('click', function() {
+  initXWordCounter()
 })
+
+// 立即尝试运行一次
+initXWordCounter()

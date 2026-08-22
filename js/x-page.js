@@ -314,18 +314,6 @@ function renderXCompose(user) {
       closeXCompose()
     })
   }
-
-  var input = page.querySelector('.x-compose-input')
-  var publishBtn = page.querySelector('.x-compose-publish')
-
-  if (input && publishBtn) {
-    input.addEventListener('input', function() {
-      var hasText = input.textContent.trim().length > 0
-
-      publishBtn.style.opacity = hasText ? '1' : '0.4'
-      publishBtn.style.pointerEvents = hasText ? 'auto' : 'none'
-    })
-  }
 }
 
 function showXLoginPage(options) {

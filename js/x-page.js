@@ -1153,6 +1153,9 @@ function buildXPost(data, user) {
     '<button class="x-post-action share"><svg viewBox="0 0 24 24"><g><path d="M12 2.59l5.7 5.7-1.41 1.42L13 6.41V16h-2V6.41l-3.29 3.3-1.42-1.42L12 2.59zM21 15l-.02 3.51c0 1.38-1.12 2.49-2.5 2.49H5.5C4.11 21 3 19.88 3 18.5V15h2v3.5c0 .28.22.5.5.5h12.98c.28 0 .5-.22.5-.5L19 15h2z"></path></g></svg></button>' + 
     '</div>' + 
     '</div>' + 
+    '<div class="x-post-comments-section" style="display:none; border-top: 1px solid #38444d; padding: 12px 16px; background: rgba(0,0,0,0.15);">' +
+      '<div class="x-comments-list" style="font-size:13px; color:#8899a6;">尚無留言，點擊留言按鈕讓 AI 生成...</div>' +
+    '</div>' +
     '</div>'; 
 }
 

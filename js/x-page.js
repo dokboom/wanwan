@@ -71,25 +71,6 @@ function renderXPage(user) {
     app.appendChild(page)
   }
 
-var input = page.querySelector('.x-compose-input')
-var publishBtn = page.querySelector('.x-compose-publish')
-
-if (input && publishBtn) {
-  input.addEventListener('input', function() {
-    var hasText = input.textContent.trim().length > 0
-
-    publishBtn.disabled = !hasText
-
-    if (hasText) {
-      publishBtn.style.opacity = '1'
-      publishBtn.style.pointerEvents = 'auto'
-    } else {
-      publishBtn.style.opacity = '0.4'
-      publishBtn.style.pointerEvents = 'none'
-    }
-  })
-}
-
   var avatar = page.querySelector('.x-topbar-avatar')
   if (avatar) {
     avatar.setAttribute('role', 'button')
@@ -305,7 +286,7 @@ function renderXCompose(user) {
   page.innerHTML =
     '<div class="x-compose-header">' +
       '<button class="x-compose-cancel">取消</button>' +
-      '<button class="x-compose-publish" disabled>发布</button>' +
+      '<button class="x-compose-publish">发布</button>' +
     '</div>' +
     '<div class="x-compose-body">' +
       '<div class="x-compose-avatar">' + getXAvatarHTML(user) + '</div>' +
@@ -331,6 +312,18 @@ function renderXCompose(user) {
     cancelBtn.addEventListener('click', function(e) {
       e.stopPropagation()
       closeXCompose()
+    })
+  }
+
+  var input = page.querySelector('.x-compose-input')
+  var publishBtn = page.querySelector('.x-compose-publish')
+
+  if (input && publishBtn) {
+    input.addEventListener('input', function() {
+      var hasText = input.textContent.trim().length > 0
+
+      publishBtn.style.opacity = hasText ? '1' : '0.4'
+      publishBtn.style.pointerEvents = hasText ? 'auto' : 'none'
     })
   }
 }

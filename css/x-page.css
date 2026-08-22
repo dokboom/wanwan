@@ -1224,3 +1224,8 @@
   border-color: var(--x-border);
   color: var(--x-text);
 }
+
+.x-compose-publish.active {
+  opacity: 1;
+  pointer-events: auto;
+}

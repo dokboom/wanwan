@@ -71,16 +71,24 @@ function renderXPage(user) {
     app.appendChild(page)
   }
 
-    var input = page.querySelector('.x-compose-input')
-  var publishBtn = page.querySelector('.x-compose-publish')
+var input = page.querySelector('.x-compose-input')
+var publishBtn = page.querySelector('.x-compose-publish')
 
-  if (input && publishBtn) {
-    input.addEventListener('input', function() {
-      var hasText = input.textContent.trim().length > 0
-      publishBtn.disabled = !hasText
-      publishBtn.style.opacity = hasText ? '1' : '0.4'
-    })
-  }
+if (input && publishBtn) {
+  input.addEventListener('input', function() {
+    var hasText = input.textContent.trim().length > 0
+
+    publishBtn.disabled = !hasText
+
+    if (hasText) {
+      publishBtn.style.opacity = '1'
+      publishBtn.style.pointerEvents = 'auto'
+    } else {
+      publishBtn.style.opacity = '0.4'
+      publishBtn.style.pointerEvents = 'none'
+    }
+  })
+}
 
   var avatar = page.querySelector('.x-topbar-avatar')
   if (avatar) {

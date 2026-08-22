@@ -542,6 +542,44 @@ window.showXCompose = function() {
   var existing = document.getElementById('x-compose');
   if (existing) existing.remove();
 
+  var existingMenu = document.getElementById('x-compose-menu');
+  if (existingMenu) existingMenu.remove();
+
+  var menu = document.createElement('div');
+  menu.id = 'x-compose-menu';
+  menu.style.cssText = 'position: fixed; bottom: 80px; right: 20px; background: #15202b; border: 1px solid #38444d; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); z-index: 9999; overflow: hidden; width: 180px; font-family: sans-serif;';
+  
+  menu.innerHTML = `
+    <div id="btn-manual" style="padding: 14px 16px; cursor: pointer; border-bottom: 1px solid #38444d; font-weight: bold; color: #fff;">✍️ 手動發布</div>
+    <div id="btn-ai" style="padding: 14px 16px; cursor: pointer; font-weight: bold; color: #1d9bf0;">🤖 AI 生成</div>
+  `;
+
+  document.body.appendChild(menu);
+
+  // 點擊「手動發布」時執行你原本的邏輯
+  menu.querySelector('#btn-manual').addEventListener('click', function() {
+    menu.remove();
+    getXSessionUser().then(function(user) {
+      if (user) renderXCompose(user);
+    });
+  });
+
+  // 點擊「AI 生成」時執行 AI 機器人大腦
+  menu.querySelector('#btn-ai').addEventListener('click', async function() {
+    menu.remove();
+    await generateIGFeedPosts(document.body);
+  });
+
+  setTimeout(function() {
+    document.addEventListener('click', function closeMenu(e) {
+      if (!menu.contains(e.target)) {
+        menu.remove();
+        document.removeEventListener('click', closeMenu);
+      }
+    });
+  }, 100);
+};
+
   getXSessionUser().then(function(user) {
     if (user) renderXCompose(user);
   });

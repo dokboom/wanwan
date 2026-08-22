@@ -1239,3 +1239,18 @@
   opacity: 0.4;
   pointer-events: none;
 }
+
+.x-compose-publish {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.x-compose-publish.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.x-compose-publish:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}

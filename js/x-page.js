@@ -511,7 +511,7 @@ function renderXCompose(user) {
   page.innerHTML =
     '<div class="x-compose-header">' +
       '<button class="x-compose-cancel">取消</button>' +
-      '<button class="x-compose-publish" disabled>完成</button>' +
+      '<button class="x-compose-publish" type="button" disabled>完成</button>'
     '</div>' +
 
     '<div class="x-compose-body">' +
@@ -541,10 +541,10 @@ function renderXCompose(user) {
         '</button>' +
       '</div>' +
     '</div>'
-
+  
   mountXPage(page)
 
-  var input = page.querySelector('.x-compose-input')
+var input = page.querySelector('.x-compose-input')
 var publishBtn = page.querySelector('.x-compose-publish')
 
 function updatePublishButton() {
@@ -561,6 +561,22 @@ if (input) {
   input.addEventListener('keyup', updatePublishButton)
   input.addEventListener('paste', function() {
     setTimeout(updatePublishButton, 0)
+  })
+}
+
+updatePublishButton()
+
+var cancelBtn = page.querySelector('.x-compose-cancel')
+if (cancelBtn) {
+  cancelBtn.addEventListener('click', function() {
+    closeXCompose()
+  })
+}
+
+if (publishBtn) {
+  publishBtn.addEventListener('click', async function() {
+    if (publishBtn.disabled) return
+    await publishXPost(page, user)
   })
 }
 

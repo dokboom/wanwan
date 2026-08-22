@@ -88,14 +88,13 @@ async function renderXPage(user) {
         '</button>' +
       '</div>' +
 
-      '<div class="x-tabs">' +
-        '<button class="x-tab active" type="button" data-feed-tab="recommend">' +
-          '为你推荐' +
-          '<span class="x-tab-arrow">' + getXChevronDownSvg() + '</span>' +
-        '</button>' +
-        '<button class="x-tab" type="button" data-feed-tab="following">正在关注</button>' +
-      '</div>' +
-    '</div>' +
+'<div class="x-tabs">' +
+  '<button class="x-tab active" type="button" data-feed-tab="recommend">' +
+    '为你推荐' +
+    '<span class="x-tab-arrow"><i class="fas fa-chevron-down"></i></span>' +
+  '</button>' +
+  '<button class="x-tab" type="button" data-feed-tab="following">正在关注</button>' +
+'</div>' +
 
     '<main class="x-content" id="x-content"></main>' +
 

@@ -71,6 +71,17 @@ function renderXPage(user) {
     app.appendChild(page)
   }
 
+    var input = page.querySelector('.x-compose-input')
+  var publishBtn = page.querySelector('.x-compose-publish')
+
+  if (input && publishBtn) {
+    input.addEventListener('input', function() {
+      var hasText = input.textContent.trim().length > 0
+      publishBtn.disabled = !hasText
+      publishBtn.style.opacity = hasText ? '1' : '0.4'
+    })
+  }
+
   var avatar = page.querySelector('.x-topbar-avatar')
   if (avatar) {
     avatar.setAttribute('role', 'button')

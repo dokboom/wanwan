@@ -306,7 +306,17 @@ function renderXCompose(user) {
     var app = document.getElementById('app') || document.body
     app.appendChild(page)
   }
+  
+  var input = page.querySelector('.x-compose-input')
+  var publishBtn = page.querySelector('.x-compose-publish')
 
+  if (input && publishBtn) {
+    input.addEventListener('input', function() {
+      var hasText = input.textContent.trim().length > 0
+      publishBtn.style.opacity = hasText ? '1' : '0.4'
+    })
+  }
+  
   var cancelBtn = page.querySelector('.x-compose-cancel')
   if (cancelBtn) {
     cancelBtn.addEventListener('click', function(e) {

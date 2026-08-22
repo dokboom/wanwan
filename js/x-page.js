@@ -547,6 +547,21 @@ window.showXCompose = function() {
   });
 };
 
+
+
+function showXLoginPage(options) {
+  options = options || {};
+  var existing = document.getElementById('x-login-page');
+  if (existing) existing.remove();
+  if (options.replaceExisting) {
+    var xPage = document.getElementById('x-page');
+    if (xPage) xPage.remove();
+    var profilePage = document.getElementById('x-profile-page');
+    if (profilePage) profilePage.remove();
+    var editPage = document.getElementById('x-profile-edit-page');
+    if (editPage) editPage.remove();
+  }
+
 function renderXCompose(user) {
   var page = document.createElement('div');
   page.id = 'x-compose';
@@ -557,6 +572,7 @@ function renderXCompose(user) {
   page.innerHTML =
     '<div class="x-compose-header">' +
       '<button class="x-compose-cancel">取消</button>' +
+      '<button class="x-compose-ai" style="background:#1d9bf0; color:#fff; border:none; padding:6px 12px; border-radius:16px; font-weight:bold; cursor:pointer;">🤖 AI 生成</button>' +
       '<button class="x-compose-publish">發布</button>' +
     '</div>' +
     '<div class="x-compose-body">' +
@@ -666,21 +682,36 @@ function renderXCompose(user) {
       }
     });
   }
-}
 
-function showXLoginPage(options) {
-  options = options || {};
-  var existing = document.getElementById('x-login-page');
-  if (existing) existing.remove();
-  if (options.replaceExisting) {
-    var xPage = document.getElementById('x-page');
-    if (xPage) xPage.remove();
-    var profilePage = document.getElementById('x-profile-page');
-    if (profilePage) profilePage.remove();
-    var editPage = document.getElementById('x-profile-edit-page');
-    if (editPage) editPage.remove();
+  // 👉 AI 生成按鈕的點擊事件（放在這裡最安全！）
+  var aiBtn = page.querySelector('.x-compose-ai');
+  if (aiBtn) {
+    aiBtn.addEventListener('click', async function(e) {
+      e.stopPropagation();
+      aiBtn.innerText = '生成中...';
+      aiBtn.disabled = true;
+
+      try {
+        page._igUser = user;
+        await generateIGFeedPosts(page);
+        closeXCompose();
+        
+        var feedList = document.getElementById('x-feed-list');
+        if (feedList && typeof renderXPage === 'function') {
+          renderXPage(user);
+        } else {
+          location.reload();
+        }
+      } catch (err) {
+        console.error('AI 生成失敗', err);
+        if (window.toast) window.toast('AI 生成失敗');
+        aiBtn.innerText = '🤖 AI 生成';
+        aiBtn.disabled = false;
+      }
+    });
   }
-
+}
+  
   var page = document.createElement('div');
   page.id = 'x-login-page';
   page.className = 'full-page x-login-page';

@@ -91,7 +91,7 @@ async function renderXPage(user) {
 '<div class="x-tabs">' +
   '<button class="x-tab active" type="button" data-feed-tab="recommend">' +
     '为你推荐' +
-    '<span class="x-tab-arrow"><i class="fas fa-chevron-down"></i></span>' +
+    '<span class="x-tab-arrow">⌄</span>' +
   '</button>' +
   '<button class="x-tab" type="button" data-feed-tab="following">正在关注</button>' +
 '</div>' +

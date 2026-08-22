@@ -2,6 +2,7 @@
 
 var X_SESSION_UID_KEY = 'wanwan_x_uid'
 var X_PROFILE_PREFIX = 'wanwan_x_profile_'
+var X_POSTS_STORAGE_KEY = 'wanwan_x_posts'
 
 window.showXPage = async function() {
   var user = await getXSessionUser()
@@ -9,10 +10,10 @@ window.showXPage = async function() {
     showXLoginPage()
     return
   }
-  renderXPage(user)
+  await renderXPage(user)
 }
 
-function renderXPage(user) {
+async function renderXPage(user) {
   var existing = document.getElementById('x-page')
   if (existing) existing.remove()
 
@@ -20,6 +21,13 @@ function renderXPage(user) {
   page.id = 'x-page'
   page.className = 'full-page'
   page.dataset.xUid = user.id
+
+  // 獲取自訂貼文列表与默認貼文
+  var posts = await getXAllPosts(user)
+
+  var feedHTML = posts.map(function(post) {
+    return buildXPost(post)
+  }).join('')
 
   page.innerHTML =
     '<div class="x-topbar">' +
@@ -31,32 +39,19 @@ function renderXPage(user) {
         '<button class="x-topbar-right" type="button" aria-label="个人主页"><i class="fa-solid fa-circle-user"></i></button>' +
       '</div>' +
       '<div class="x-tabs">' +
-        '<div class="x-tab active">' +
+        '<div class="x-tab active" data-tab="recommend">' +
           '为你推荐' +
           '<span class="x-tab-arrow"><svg viewBox="0 0 24 24"><g><path d="M3.543 8.96l1.414-1.42L12 14.59l7.043-7.05 1.414 1.42L12 17.41 3.543 8.96z"></path></g></svg></span>' +
         '</div>' +
-        '<div class="x-tab">正在跟隨</div>' +
+        '<div class="x-tab" data-tab="following">正在跟隨</div>' +
       '</div>' +
     '</div>' +
 
-    '<div class="x-feed">' +
-      buildXPost({
-        avatar: 'img/wanwan.png',
-        name: '弯弯协会',
-        verified: true,
-        handle: '@Wanwan_Offical',
-        time: '2小时',
-        content: '产品上线请多多关注。#AI #Wanwan',
-        comments: 847,
-        retweets: 203,
-        likes: 3654,
-        views: '28.6万',
-        bookmarks: 0,
-        shares: 0
-      }) +
+    '<div class="x-feed" id="x-feed-list">' +
+      feedHTML +
     '</div>' +
 
-      '<button class="x-fab" onclick="showXCompose()">' +
+    '<button class="x-fab" onclick="showXCompose()">' +
       '<i class="fi fi-rr-plus"></i>' +
     '</button>' +
 
@@ -86,6 +81,15 @@ function renderXPage(user) {
       showXProfilePage(user)
     })
   }
+
+  // 標籤頁切換
+  var tabs = page.querySelectorAll('.x-tab')
+  tabs.forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      tabs.forEach(function(t) { t.classList.remove('active') })
+      tab.classList.add('active')
+    })
+  })
 
   // 返回手势 — 从左边缘右滑关闭
   var startX = 0
@@ -119,7 +123,13 @@ function renderXPage(user) {
     })
   })
 
-  var likeButtons = page.querySelectorAll('.x-post-action.like')
+  // 綁定互動按鈕事件 (點讚、轉發、收藏)
+  bindXPostActions(page)
+}
+
+function bindXPostActions(container) {
+  // 點讚按鈕
+  var likeButtons = container.querySelectorAll('.x-post-action.like')
   likeButtons.forEach(function(button) {
     button.addEventListener('click', function(e) {
       e.preventDefault()
@@ -131,6 +141,34 @@ function renderXPage(user) {
       button.dataset.liked = liked ? '0' : '1'
       button.classList.toggle('liked', !liked)
       button.innerHTML = getXHeartSvg(!liked) + '<span>' + formatXNumber(count) + '</span>'
+    })
+  })
+
+  // 轉發按鈕
+  var retweetButtons = container.querySelectorAll('.x-post-action.retweet')
+  retweetButtons.forEach(function(button) {
+    button.addEventListener('click', function(e) {
+      e.preventDefault()
+      e.stopPropagation()
+      var retweeted = button.dataset.retweeted === '1'
+      var count = Number(button.dataset.count || 0) + (retweeted ? -1 : 1)
+      button.dataset.count = String(count)
+      button.dataset.retweeted = retweeted ? '0' : '1'
+      button.classList.toggle('retweeted', !retweeted)
+      var span = button.querySelector('span')
+      if (span) span.textContent = formatXNumber(count)
+    })
+  })
+
+  // 收藏按鈕
+  var bookmarkButtons = container.querySelectorAll('.x-post-action.bookmark')
+  bookmarkButtons.forEach(function(button) {
+    button.addEventListener('click', function(e) {
+      e.preventDefault()
+      e.stopPropagation()
+      var bookmarked = button.dataset.bookmarked === '1'
+      button.dataset.bookmarked = bookmarked ? '0' : '1'
+      button.classList.toggle('bookmarked', !bookmarked)
     })
   })
 }
@@ -283,6 +321,8 @@ function renderXCompose(user) {
   page.id = 'x-compose'
   page.className = 'full-page x-compose-page'
 
+  var attachedImgUrl = ''
+
   page.innerHTML =
     '<div class="x-compose-header">' +
       '<button class="x-compose-cancel">取消</button>' +
@@ -290,13 +330,19 @@ function renderXCompose(user) {
     '</div>' +
     '<div class="x-compose-body">' +
       '<div class="x-compose-avatar">' + getXAvatarHTML(user) + '</div>' +
-      '<div class="x-compose-input" contenteditable="true" data-placeholder="有什么新鲜事？"></div>' +
+      '<div class="x-compose-main">' +
+        '<div class="x-compose-input" contenteditable="true" data-placeholder="有什么新鲜事？"></div>' +
+        '<div class="x-compose-preview-img" style="display:none; margin-top:10px; relative; max-width:100%;">' +
+          '<img src="" style="max-width:100%; max-height:200px; border-radius:12px;" />' +
+          '<button class="x-compose-remove-img" style="position:absolute; top:5px; right:5px; background:rgba(0,0,0,0.6); color:#fff; border:none; border-radius:50%; width:24px; height:24px;">×</button>' +
+        '</div>' +
+      '</div>' +
     '</div>' +
     '<div class="x-compose-footer">' +
       '<div class="x-compose-tools">' +
-        '<button class="x-compose-tool"><i class="fa-solid fa-image"></i></button>' +
-        '<button class="x-compose-tool"><i class="fa-solid fa-camera"></i></button>' +
-        '<button class="x-compose-tool"><i class="fa-solid fa-hashtag"></i></button>' +
+        '<button class="x-compose-tool btn-img"><i class="fa-solid fa-image"></i></button>' +
+        '<button class="x-compose-tool btn-camera"><i class="fa-solid fa-camera"></i></button>' +
+        '<button class="x-compose-tool btn-hashtag"><i class="fa-solid fa-hashtag"></i></button>' +
       '</div>' +
     '</div>'
 
@@ -312,6 +358,73 @@ function renderXCompose(user) {
     cancelBtn.addEventListener('click', function(e) {
       e.stopPropagation()
       closeXCompose()
+    })
+  }
+
+  // 選擇圖片按鈕
+  var imgBtn = page.querySelector('.x-compose-tool.btn-img')
+  var previewBox = page.querySelector('.x-compose-preview-img')
+  var previewImg = previewBox.querySelector('img')
+  var removeImgBtn = previewBox.querySelector('.x-compose-remove-img')
+
+  if (imgBtn) {
+    imgBtn.addEventListener('click', function() {
+      pickXImage(function(url) {
+        if (url) {
+          attachedImgUrl = url
+          previewImg.src = url
+          previewBox.style.display = 'block'
+        }
+      })
+    })
+  }
+
+  if (removeImgBtn) {
+    removeImgBtn.addEventListener('click', function() {
+      attachedImgUrl = ''
+      previewImg.src = ''
+      previewBox.style.display = 'none'
+    })
+  }
+
+  // 發布貼文邏輯
+  var publishBtn = page.querySelector('.x-compose-publish')
+  if (publishBtn) {
+    publishBtn.addEventListener('click', async function() {
+      var inputEl = page.querySelector('.x-compose-input')
+      var content = inputEl ? inputEl.innerText.trim() : ''
+
+      if (!content && !attachedImgUrl) {
+        if (window.toast) window.toast('请填写内容或上传图片')
+        return
+      }
+
+      var profile = await getXProfile(user)
+      var newPost = {
+        id: 'x_post_' + Date.now(),
+        uid: user.id,
+        avatar: profile.avatar || user.avatar || '',
+        name: getXProfileName(user, profile),
+        verified: false,
+        handle: getXProfileHandle(user, profile),
+        time: '刚刚',
+        content: content,
+        image: attachedImgUrl,
+        comments: 0,
+        retweets: 0,
+        likes: 0,
+        views: '1',
+        bookmarks: 0,
+        shares: 0,
+        timestamp: Date.now()
+      }
+
+      await saveXUserPost(user, newPost)
+      closeXCompose()
+      if (window.toast) window.toast('发布成功！')
+      
+      // 重新繪製首頁 Feed
+      renderXPage(user)
     })
   }
 }
@@ -454,6 +567,57 @@ function closeXPage() {
   } else {
     page.remove()
   }
+}
+
+// ---------------- 貼文與數據儲存邏輯 ----------------
+
+async function getXAllPosts(user) {
+  var customPosts = await getXUserPosts()
+  var defaultPosts = [
+    {
+      avatar: 'img/wanwan.png',
+      name: '弯弯协会',
+      verified: true,
+      handle: '@Wanwan_Offical',
+      time: '2小时',
+      content: '产品上线请多多关注。#AI #Wanwan',
+      comments: 847,
+      retweets: 203,
+      likes: 3654,
+      views: '28.6万',
+      bookmarks: 0,
+      shares: 0
+    }
+  ]
+  return customPosts.concat(defaultPosts)
+}
+
+async function getXUserPosts() {
+  try {
+    if (window.db && db.config) {
+      var row = await db.config.get(X_POSTS_STORAGE_KEY)
+      if (row && Array.isArray(row.value)) return row.value
+    }
+  } catch (e) {}
+  try {
+    var raw = localStorage.getItem(X_POSTS_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch (e2) {
+    return []
+  }
+}
+
+async function saveXUserPost(user, post) {
+  var posts = await getXUserPosts()
+  posts.unshift(post) // 新貼文排在前面
+
+  try {
+    if (window.db && db.config) {
+      await db.config.put({ key: X_POSTS_STORAGE_KEY, value: posts })
+      return
+    }
+  } catch (e) {}
+  localStorage.setItem(X_POSTS_STORAGE_KEY, JSON.stringify(posts))
 }
 
 async function getXUserList() {
@@ -659,12 +823,16 @@ function getXHeartSvg(solid) {
 }
 
 function buildXPost(data) {
-  var contentHTML = formatXContent(data.content)
+  var contentHTML = formatXContent(data.content || '')
   var avatarHTML = data.avatar
     ? '<img src="' + xEscape(data.avatar) + '" alt="">'
     : buildXDefaultAvatarHTML(data.name || '')
+  
+  var imageHTML = data.image
+    ? '<div class="x-post-media" style="margin-top:8px;"><img src="' + xEscape(data.image) + '" style="max-width:100%; border-radius:12px; display:block;" alt=""></div>'
+    : ''
 
-  return '<div class="x-post">' +
+  return '<div class="x-post" data-post-id="' + xEscape(data.id || '') + '">' +
     '<div class="x-post-avatar">' + avatarHTML + '</div>' +
     '<div class="x-post-body">' +
       '<div class="x-post-header">' +
@@ -677,12 +845,13 @@ function buildXPost(data) {
         '<span class="x-post-more"><svg viewBox="0 0 24 24"><g><path d="M3 12c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zm9 2c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm7 0c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"></path></g></svg></span>' +
       '</div>' +
       '<div class="x-post-content">' + contentHTML + '</div>' +
+      imageHTML +
       '<div class="x-post-actions">' +
         '<button class="x-post-action comment"><svg viewBox="0 0 24 24"><g><path d="M1.751 10c0-4.42 3.584-8.005 8.005-8.005h4.366c4.49 0 8.129 3.64 8.129 8.13 0 2.96-1.607 5.68-4.196 7.11l-8.054 4.46v-3.69h-.067c-4.49.1-8.183-3.51-8.183-8.005zm8.005-6.005c-3.317 0-6.005 2.69-6.005 6.005 0 3.37 2.77 6.08 6.138 6.01l.351-.01h1.761v2.3l5.087-2.81c1.951-1.08 3.163-3.13 3.163-5.36 0-3.39-2.744-6.13-6.129-6.13H9.756z"></path></g></svg><span>' + formatXNumber(data.comments) + '</span></button>' +
-        '<button class="x-post-action retweet"><svg viewBox="0 0 24 24"><g><path d="M4.5 3.88l4.432 4.14-1.364 1.46L5.5 7.55V16c0 1.1.896 2 2 2H13v2H7.5c-2.209 0-4-1.791-4-4V7.55L1.432 9.48.068 8.02 4.5 3.88zM16.5 6H11V4h5.5c2.209 0 4 1.791 4 4v8.45l2.068-1.93 1.364 1.46-4.432 4.14-4.432-4.14 1.364-1.46 2.068 1.93V8c0-1.1-.896-2-2-2z"></path></g></svg><span>' + formatXNumber(data.retweets) + '</span></button>' +
+        '<button class="x-post-action retweet" data-count="' + Number(data.retweets || 0) + '" data-retweeted="0"><svg viewBox="0 0 24 24"><g><path d="M4.5 3.88l4.432 4.14-1.364 1.46L5.5 7.55V16c0 1.1.896 2 2 2H13v2H7.5c-2.209 0-4-1.791-4-4V7.55L1.432 9.48.068 8.02 4.5 3.88zM16.5 6H11V4h5.5c2.209 0 4 1.791 4 4v8.45l2.068-1.93 1.364 1.46-4.432 4.14-4.432-4.14 1.364-1.46 2.068 1.93V8c0-1.1-.896-2-2-2z"></path></g></svg><span>' + formatXNumber(data.retweets) + '</span></button>' +
         '<button class="x-post-action like" data-count="' + Number(data.likes || 0) + '" data-base-count="' + Number(data.likes || 0) + '" data-liked="0">' + getXHeartSvg(false) + '<span>' + formatXNumber(data.likes) + '</span></button>' +
         '<button class="x-post-action views"><svg viewBox="0 0 24 24"><g><path d="M8.75 21V3h2v18h-2zM18 21V8.5h2V21h-2zM4 21l.004-10H6v10H4zm9.248 0v-7h2v7h-2z"></path></g></svg><span>' + formatXNumber(data.views) + '</span></button>' +
-        '<button class="x-post-action bookmark"><svg viewBox="0 0 24 24"><g><path d="M4 4.5C4 3.12 5.119 2 6.5 2h11C18.881 2 20 3.12 20 4.5v18.44l-8-5.71-8 5.71V4.5zM6.5 4c-.276 0-.5.22-.5.5v14.56l6-4.29 6 4.29V4.5c0-.28-.224-.5-.5-.5h-11z"></path></g></svg></button>' +
+        '<button class="x-post-action bookmark" data-bookmarked="0"><svg viewBox="0 0 24 24"><g><path d="M4 4.5C4 3.12 5.119 2 6.5 2h11C18.881 2 20 3.12 20 4.5v18.44l-8-5.71-8 5.71V4.5zM6.5 4c-.276 0-.5.22-.5.5v14.56l6-4.29 6 4.29V4.5c0-.28-.224-.5-.5-.5h-11z"></path></g></svg></button>' +
         '<button class="x-post-action share"><svg viewBox="0 0 24 24"><g><path d="M12 2.59l5.7 5.7-1.41 1.42L13 6.41V16h-2V6.41l-3.29 3.3-1.42-1.42L12 2.59zM21 15l-.02 3.51c0 1.38-1.12 2.49-2.5 2.49H5.5C4.11 21 3 19.88 3 18.5V15h2v3.5c0 .28.22.5.5.5h12.98c.28 0 .5-.22.5-.5L19 15h2z"></path></g></svg></button>' +
       '</div>' +
     '</div>' +
@@ -718,9 +887,9 @@ function buildXBottomBar() {
   ]
 
   return items.map(function(item) {
-    return '<div class="x-bottombar-item' + (item.active ? ' active' : '') + '" data-tab="' + item.id + '">' +
-      '<span class="icon-default">' + item.defaultSvg + '</span>' +
-      '<span class="icon-active">' + item.activeSvg + '</span>' +
-    '</div>'
+    return '<button class="x-bottombar-item ' + (item.active ? 'active' : '') + '" data-tab="' + item.id + '">' +
+      '<span class="x-icon-default">' + item.defaultSvg + '</span>' +
+      '<span class="x-icon-active">' + item.activeSvg + '</span>' +
+    '</button>'
   }).join('')
 }

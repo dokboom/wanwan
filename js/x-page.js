@@ -263,7 +263,7 @@ function bindXPostActions(container, user) {
       var liked = button.dataset.liked === '1';
       var baseCount = Number(button.dataset.baseCount || button.dataset.count || 0);
       var count = Math.max(0, Number(button.dataset.count || baseCount) + (liked ? -1 : 1));
-      
+
       button.dataset.count = String(count);
       button.dataset.liked = liked ? '0' : '1';
       button.classList.toggle('liked', !liked);
@@ -286,7 +286,7 @@ function bindXPostActions(container, user) {
       var retweeted = button.dataset.retweeted === '1';
       var baseCount = Number(button.dataset.baseCount || button.dataset.count || 0);
       var count = Math.max(0, Number(button.dataset.count || baseCount) + (retweeted ? -1 : 1));
-      
+
       button.dataset.count = String(count);
       button.dataset.retweeted = retweeted ? '0' : '1';
       button.classList.toggle('retweeted', !retweeted);
@@ -308,7 +308,7 @@ function bindXPostActions(container, user) {
       var postEl = button.closest('.x-post');
       var postId = postEl ? postEl.dataset.postId : null;
       var bookmarked = button.dataset.bookmarked === '1';
-      
+
       button.dataset.bookmarked = bookmarked ? '0' : '1';
       button.classList.toggle('bookmarked', !bookmarked);
 
@@ -547,21 +547,6 @@ window.showXCompose = function() {
   });
 };
 
-
-
-function showXLoginPage(options) {
-  options = options || {};
-  var existing = document.getElementById('x-login-page');
-  if (existing) existing.remove();
-  if (options.replaceExisting) {
-    var xPage = document.getElementById('x-page');
-    if (xPage) xPage.remove();
-    var profilePage = document.getElementById('x-profile-page');
-    if (profilePage) profilePage.remove();
-    var editPage = document.getElementById('x-profile-edit-page');
-    if (editPage) editPage.remove();
-  }
-
 function renderXCompose(user) {
   var page = document.createElement('div');
   page.id = 'x-compose';
@@ -667,7 +652,7 @@ function renderXCompose(user) {
       await saveXUserPost(user, newPost);
       closeXCompose();
       if (window.toast) window.toast('發布成功！');
-      
+
       var feedList = document.getElementById('x-feed-list');
       if (feedList) {
         var tempDiv = document.createElement('div');
@@ -711,7 +696,20 @@ function renderXCompose(user) {
     });
   }
 }
-  
+
+function showXLoginPage(options) {
+  options = options || {};
+  var existing = document.getElementById('x-login-page');
+  if (existing) existing.remove();
+  if (options.replaceExisting) {
+    var xPage = document.getElementById('x-page');
+    if (xPage) xPage.remove();
+    var profilePage = document.getElementById('x-profile-page');
+    if (profilePage) profilePage.remove();
+    var editPage = document.getElementById('x-profile-edit-page');
+    if (editPage) editPage.remove();
+  }
+
   var page = document.createElement('div');
   page.id = 'x-login-page';
   page.className = 'full-page x-login-page';

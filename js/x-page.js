@@ -286,7 +286,7 @@ function renderXCompose(user) {
   page.innerHTML =
     '<div class="x-compose-header">' +
       '<button class="x-compose-cancel">取消</button>' +
-      '<button class="x-compose-publish">发布</button>' +
+      '<button class="x-compose-publish" disabled>发布</button>' +
     '</div>' +
     '<div class="x-compose-body">' +
       '<div class="x-compose-avatar">' + getXAvatarHTML(user) + '</div>' +

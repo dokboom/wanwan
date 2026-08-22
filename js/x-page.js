@@ -1100,63 +1100,172 @@ function getXHeartSvg(solid) {
     : '<svg viewBox="0 0 24 24"><g><path d="M16.697 5.5c-1.222-.06-2.679.51-3.89 2.16l-.805 1.09-.806-1.09C9.984 6.01 8.526 5.44 7.304 5.5c-1.243.07-2.349.78-2.91 1.91-.552 1.12-.633 2.78.479 4.82 1.074 1.97 3.257 4.27 7.129 6.61 3.87-2.34 6.052-4.64 7.126-6.61 1.111-2.04 1.03-3.7.477-4.82-.561-1.13-1.666-1.84-2.908-1.91zm4.187 7.69c-1.351 2.48-4.001 5.12-8.379 7.67l-.503.3-.504-.3c-4.379-2.55-7.029-5.19-8.382-7.67-1.36-2.5-1.41-4.86-.514-6.67.887-1.79 2.647-2.91 4.601-3.01 1.651-.09 3.368.56 4.798 2.01 1.429-1.45 3.146-2.1 4.796-2.01 1.954.1 3.714 1.22 4.601 3.01.896 1.81.846 4.17-.514 6.67z"></path></g></svg>'; 
 }
 
-function buildXPost(data, user) { 
-  var actions = getStoredXActions(); 
-  var pAction = (data.id && actions[data.id]) ? actions[data.id] : {};
+function bindXPostActions(container, user) {
+  var likeButtons = container.querySelectorAll('.x-post-action.like');
+  likeButtons.forEach(function(button) {
+    button.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var postEl = button.closest('.x-post');
+      var postId = postEl ? postEl.dataset.postId : null;
+      var liked = button.dataset.liked === '1';
+      var baseCount = Number(button.dataset.baseCount || button.dataset.count || 0);
+      var count = Math.max(0, Number(button.dataset.count || baseCount) + (liked ? -1 : 1));
+      
+      button.dataset.count = String(count);
+      button.dataset.liked = liked ? '0' : '1';
+      button.classList.toggle('liked', !liked);
+      button.innerHTML = getXHeartSvg(!liked) + '<span>' + formatXNumber(count) + '</span>';
 
-  var isLiked = pAction.liked !== undefined ? pAction.liked : false; 
-  var likeCount = pAction.likeCount !== undefined ? pAction.likeCount : Number(data.likes || 0);
+      if (postId) {
+        saveStoredXAction(postId, 'liked', !liked);
+        saveStoredXAction(postId, 'likeCount', count);
+      }
+    });
+  });
 
-  var isRetweeted = pAction.retweeted !== undefined ? pAction.retweeted : false; 
-  var retweetCount = pAction.retweetCount !== undefined ? pAction.retweetCount : Number(data.retweets || 0);
+  var retweetButtons = container.querySelectorAll('.x-post-action.retweet');
+  retweetButtons.forEach(function(button) {
+    button.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var postEl = button.closest('.x-post');
+      var postId = postEl ? postEl.dataset.postId : null;
+      var retweeted = button.dataset.retweeted === '1';
+      var baseCount = Number(button.dataset.baseCount || button.dataset.count || 0);
+      var count = Math.max(0, Number(button.dataset.count || baseCount) + (retweeted ? -1 : 1));
+      
+      button.dataset.count = String(count);
+      button.dataset.retweeted = retweeted ? '0' : '1';
+      button.classList.toggle('retweeted', !retweeted);
+      var span = button.querySelector('span');
+      if (span) span.textContent = formatXNumber(count);
 
-  var isBookmarked = pAction.bookmarked !== undefined ? pAction.bookmarked : false; 
-  var commentCount = pAction.commentCount !== undefined ? pAction.commentCount : Number(data.comments || 0);
+      if (postId) {
+        saveStoredXAction(postId, 'retweeted', !retweeted);
+        saveStoredXAction(postId, 'retweetCount', count);
+      }
+    });
+  });
 
-  var contentHTML = formatXContent(data.content || ''); 
-  var avatarHTML = data.avatar 
-    ? '<img src="' + xEscape(data.avatar) + '" alt="">' 
-    : buildXDefaultAvatarHTML(data.name || '');
+  var bookmarkButtons = container.querySelectorAll('.x-post-action.bookmark');
+  bookmarkButtons.forEach(function(button) {
+    button.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var postEl = button.closest('.x-post');
+      var postId = postEl ? postEl.dataset.postId : null;
+      var bookmarked = button.dataset.bookmarked === '1';
+      
+      button.dataset.bookmarked = bookmarked ? '0' : '1';
+      button.classList.toggle('bookmarked', !bookmarked);
 
-  var imageHTML = data.image 
-    ? '<div class="x-post-media" style="margin-top:8px;"><img src="' + xEscape(data.image) + '" style="max-width:100%; border-radius:12px; display:block;" alt=""></div>' 
-    : '';
+      if (postId) {
+        saveStoredXAction(postId, 'bookmarked', !bookmarked);
+      }
+    });
+  });
 
-  var isOwnPost = user && (data.uid === user.id); 
-  var deleteMenuHTML = isOwnPost 
-    ? '<button class="x-post-delete-btn" style="background:transparent; border:none; color:#f4212e; cursor:pointer; padding:4px;" title="刪除貼文"><i class="fa-solid fa-trash-can"></i></button>' 
-    : '';
+  // 👉 點擊留言按鈕：展開/收合 AI 評論與手動輸入框
+  var commentButtons = container.querySelectorAll('.x-post-action.comment');
+  commentButtons.forEach(function(button) {
+    button.addEventListener('click', async function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var postEl = button.closest('.x-post');
+      if (!postEl) return;
+      
+      var commentsSection = postEl.querySelector('.x-post-comments-section');
+      if (!commentsSection) return;
 
-  return '<div class="x-post" data-post-id="' + xEscape(data.id || '') + '">' + 
-    '<div class="x-post-avatar">' + avatarHTML + '</div>' + 
-    '<div class="x-post-body">' + 
-    '<div class="x-post-header">' + 
-    '<span class="x-post-name">' + xEscape(data.name) + '</span>' + 
-    (data.verified ? 
-    '<span class="x-post-verified"><svg viewBox="0 0 24 24"><g><path d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.27 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.46 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34zm-11.71 4.2L6.8 12.46l1.41-1.42 2.26 2.26 4.8-5.23 1.47 1.36-6.2 6.77z"></path></g></svg></span>' : '') + 
-    '<span class="x-post-handle">' + xEscape(data.handle) + '</span>' + 
-    '<span class="x-post-dot">·</span>' + 
-    '<span class="x-post-time">' + xEscape(data.time) + '</span>' + 
-    '<span class="x-post-more" style="display:flex; align-items:center; gap:8px;">' + 
-    deleteMenuHTML + 
-    '<svg viewBox="0 0 24 24" width="18"><g><path d="M3 12c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zm9 2c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm7 0c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"></path></g></svg>' + 
-    '</span>' + 
-    '</div>' + 
-    '<div class="x-post-content">' + contentHTML + '</div>' + 
-    imageHTML + 
-    '<div class="x-post-actions">' + 
-    '<button class="x-post-action comment"><svg viewBox="0 0 24 24"><g><path d="M1.751 10c0-4.42 3.584-8.005 8.005-8.005h4.366c4.49 0 8.129 3.64 8.129 8.13 0 2.96-1.607 5.68-4.196 7.11l-8.054 4.46v-3.69h-.067c-4.49.1-8.183-3.51-8.183-8.005zm8.005-6.005c-3.317 0-6.005 2.69-6.005 6.005 0 3.37 2.77 6.08 6.138 6.01l.351-.01h1.761v2.3l5.087-2.81c1.951-1.08 3.163-3.13 3.163-5.36 0-3.39-2.744-6.13-6.129-6.13H9.756z"></path></g></svg><span>' + formatXNumber(commentCount) + '</span></button>' + 
-    '<button class="x-post-action retweet ' + (isRetweeted ? 'retweeted' : '') + '" data-base-count="' + Number(data.retweets || 0) + '" data-count="' + retweetCount + '" data-retweeted="' + (isRetweeted ? '1' : '0') + '"><svg viewBox="0 0 24 24"><g><path d="M4.5 3.88l4.432 4.14-1.364 1.46L5.5 7.55V16c0 1.1.896 2 2 2H13v2H7.5c-2.209 0-4-1.791-4-4V7.55L1.432 9.48.068 8.02 4.5 3.88zM16.5 6H11V4h5.5c2.209 0 4 1.791 4 4v8.45l2.068-1.93 1.364 1.46-4.432 4.14-4.432-4.14 1.364-1.46 2.068 1.93V8c0-1.1-.896-2-2-2z"></path></g></svg><span>' + formatXNumber(retweetCount) + '</span></button>' + 
-    '<button class="x-post-action like ' + (isLiked ? 'liked' : '') + '" data-base-count="' + Number(data.likes || 0) + '" data-count="' + likeCount + '" data-liked="' + (isLiked ? '1' : '0') + '">' + getXHeartSvg(isLiked) + '<span>' + formatXNumber(likeCount) + '</span></button>' + 
-    '<button class="x-post-action views"><svg viewBox="0 0 24 24"><g><path d="M8.75 21V3h2v18h-2zM18 21V8.5h2V21h-2zM4 21l.004-10H6v10H4zm9.248 0v-7h2v7h-2z"></path></g></svg><span>' + formatXNumber(data.views) + '</span></button>' + 
-    '<button class="x-post-action bookmark ' + (isBookmarked ? 'bookmarked' : '') + '" data-bookmarked="' + (isBookmarked ? '1' : '0') + '"><svg viewBox="0 0 24 24"><g><path d="M4 4.5C4 3.12 5.119 2 6.5 2h11C18.881 2 20 3.12 20 4.5v18.44l-8-5.71-8 5.71V4.5zM6.5 4c-.276 0-.5.22-.5.5v14.56l6-4.29 6 4.29V4.5c0-.28-.224-.5-.5-.5h-11z"></path></g></svg></button>' + 
-    '<button class="x-post-action share"><svg viewBox="0 0 24 24"><g><path d="M12 2.59l5.7 5.7-1.41 1.42L13 6.41V16h-2V6.41l-3.29 3.3-1.42-1.42L12 2.59zM21 15l-.02 3.51c0 1.38-1.12 2.49-2.5 2.49H5.5C4.11 21 3 19.88 3 18.5V15h2v3.5c0 .28.22.5.5.5h12.98c.28 0 .5-.22.5-.5L19 15h2z"></path></g></svg></button>' + 
-    '</div>' + 
-    '</div>' + 
-    '<div class="x-post-comments-section" style="display:none; border-top: 1px solid #38444d; padding: 12px 16px; background: rgba(0,0,0,0.15);">' +
-      '<div class="x-comments-list" style="font-size:13px; color:#8899a6;">尚無留言，點擊留言按鈕讓 AI 生成...</div>' +
-    '</div>' +
-    '</div>'; 
+      // 如果尚未建立內部結構（AI 列表 + 輸入框），在這裡動態補上
+      if (!commentsSection.dataset.init) {
+        commentsSection.dataset.init = 'true';
+        commentsSection.innerHTML = 
+          '<div class="x-comments-list" style="font-size:13px; color:#8899a6; margin-bottom: 10px;">尚無留言，正在生成 AI 評論...</div>' +
+          '<div style="display: flex; gap: 8px; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">' +
+            '<input type="text" class="x-quick-reply-input" placeholder="回覆這篇推文..." style="flex: 1; background: #202327; border: 1px solid #38444d; border-radius: 20px; padding: 6px 12px; color: #fff; font-size: 13px; outline: none;" />' +
+            '<button class="x-quick-reply-btn" style="background: #1d9bf0; color: #fff; border: none; padding: 6px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 12px;">回覆</button>' +
+          '</div>';
+      }
+
+      var commentsList = commentsSection.querySelector('.x-comments-list');
+      var replyInput = commentsSection.querySelector('.x-quick-reply-input');
+      var replyBtn = commentsSection.querySelector('.x-quick-reply-btn');
+
+      // 切換展開與收合
+      if (commentsSection.style.display === 'none' || !commentsSection.style.display) {
+        commentsSection.style.display = 'block';
+
+        // 如果還沒載入過 AI 評論，就呼叫 AI
+        if (!commentsSection.dataset.loaded) {
+          commentsList.innerHTML = '🤖 AI 正在生成評論...';
+          
+          try {
+            var postContentEl = postEl.querySelector('.x-post-content');
+            var postContent = postContentEl ? postContentEl.innerText : '';
+            var prompt = `請針對這篇推文生成 2 到 3 則簡短有趣的網友留言或回覆：\n"${postContent}"\n請直接回傳文字，每則留言換行。`;
+            
+            var raw = await window.callAI([{ role: 'user', content: prompt }], { temperature: 0.7 });
+            
+            if (raw) {
+              var lines = raw.split('\n').filter(function(l) { return l.trim(); });
+              var html = '';
+              lines.forEach(function(line) {
+                html += '<div style="margin-bottom: 6px; line-height: 1.4;"><span style="color: #1d9bf0; font-weight: bold; margin-right: 6px;">網友</span><span style="color: #fff;">' + line.replace(/^[-*•\d+.]\s*/, '') + '</span></div>';
+              });
+              commentsList.innerHTML = html;
+              commentsSection.dataset.loaded = 'true';
+            } else {
+              commentsList.innerHTML = '暫無新評論';
+            }
+          } catch (err) {
+            console.error('生成評論失敗', err);
+            commentsList.innerHTML = '生成評論失敗';
+          }
+        }
+
+        // 綁定手動回覆按鈕事件
+        if (replyBtn && replyInput && !replyBtn.dataset.bound) {
+          replyBtn.dataset.bound = 'true';
+          replyBtn.addEventListener('click', function(subE) {
+            subE.stopPropagation();
+            var text = replyInput.value.trim();
+            if (!text) return;
+
+            var userReplyHTML = '<div style="margin-bottom: 6px; line-height: 1.4;"><span style="color: #00ba7c; font-weight: bold; margin-right: 6px;">你</span><span style="color: #fff;">' + xEscape(text) + '</span></div>';
+            
+            if (commentsList.innerHTML.includes('尚無留言') || commentsList.innerHTML.includes('正在生成')) {
+              commentsList.innerHTML = userReplyHTML;
+            } else {
+              commentsList.innerHTML += userReplyHTML;
+            }
+
+            replyInput.value = '';
+            if (window.toast) window.toast('回覆成功！');
+          });
+        }
+
+      } else {
+        commentsSection.style.display = 'none';
+      }
+    });
+  });
+
+  var deleteButtons = container.querySelectorAll('.x-post-delete-btn');
+  deleteButtons.forEach(function(button) {
+    button.addEventListener('click', async function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var postEl = button.closest('.x-post');
+      var postId = postEl ? postEl.dataset.postId : null;
+      if (postId && user) {
+        await removeXUserPost(postId);
+        if (postEl) postEl.remove();
+        if (window.toast) window.toast('貼文已成功刪除');
+      }
+    });
+  });
 }
 
 function buildXBottomBar() { 

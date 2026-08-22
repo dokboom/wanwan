@@ -512,7 +512,7 @@ function renderXCompose(user) {
   page.innerHTML =
     '<div class="x-compose-header">' +
       '<button class="x-compose-cancel">取消</button>' +
-      '<button class="x-compose-publish">发布</button>' +
+      '<button class="x-compose-publish" disabled>完成</button>' + +
     '</div>' +
 
     '<div class="x-compose-body">' +
@@ -544,6 +544,28 @@ function renderXCompose(user) {
     '</div>'
 
   mountXPage(page)
+
+  var input = page.querySelector('.x-compose-input')
+var publishBtn = page.querySelector('.x-compose-publish')
+
+function updatePublishButton() {
+  var hasText = input && input.textContent.trim().length > 0
+  var hasImage = page.querySelector('.x-compose-image-preview')
+  var canPublish = hasText || !!hasImage
+
+  publishBtn.disabled = !canPublish
+  publishBtn.classList.toggle('active', canPublish)
+}
+
+if (input) {
+  input.addEventListener('input', updatePublishButton)
+  input.addEventListener('keyup', updatePublishButton)
+  input.addEventListener('paste', function() {
+    setTimeout(updatePublishButton, 0)
+  })
+}
+
+updatePublishButton()
 
   var cancelBtn = page.querySelector('.x-compose-cancel')
   if (cancelBtn) {
